@@ -37,12 +37,14 @@ button:disabled {
 }
 
 .app-shell {
-  --app-bg: #0b0b0b;
-  --panel-bg: #111110;
-  --panel-subtle: #181817;
-  --app-border: #2b2a28;
-  --app-text: #f2f0e9;
-  --app-muted: #888681;
+  --app-bg: #10100f;
+  --panel-bg: #181817;
+  --panel-subtle: #222220;
+  --app-border: #343430;
+  --app-text: #f2f1eb;
+  --app-muted: #989891;
+  --accent: #f2f1eb;
+  --accent-inverse: #111111;
   background: var(--app-bg);
   color: var(--app-text);
   font-family: Arial, "Helvetica Neue", sans-serif;
@@ -50,12 +52,14 @@ button:disabled {
 
 .app-shell[data-theme="dark"] {
   color-scheme: dark;
-  --app-bg: #0b0b0b;
-  --panel-bg: #111110;
-  --panel-subtle: #181817;
-  --app-border: #2b2a28;
-  --app-text: #f2f0e9;
-  --app-muted: #888681;
+  --app-bg: #10100f;
+  --panel-bg: #181817;
+  --panel-subtle: #222220;
+  --app-border: #343430;
+  --app-text: #f2f1eb;
+  --app-muted: #989891;
+  --accent: #f2f1eb;
+  --accent-inverse: #111111;
 }
 
 .app-shell[data-theme="light"] {
@@ -66,6 +70,8 @@ button:disabled {
   --app-border: #d4d1c8;
   --app-text: #111110;
   --app-muted: #77756f;
+  --accent: #111110;
+  --accent-inverse: #f2f0e9;
 }
 
 .theme-header {
@@ -157,6 +163,119 @@ button:disabled {
   transition: background-color 120ms ease, color 120ms ease;
 }
 
+.mobile-menu-trigger {
+  border: 1px solid var(--app-border);
+}
+
+.mobile-header-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  display: flex;
+  width: min(248px, calc(100vw - 24px));
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--app-border);
+  background: var(--panel-bg);
+  padding: 6px;
+  color: var(--app-text);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 28%);
+}
+
+.mobile-header-menu > button,
+.mobile-menu-row > button {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  color: var(--app-text);
+  font-size: 12px;
+  text-align: left;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.mobile-header-menu > button:hover:not(:disabled),
+.mobile-menu-row > button:hover:not(:disabled) {
+  background: var(--panel-subtle);
+}
+
+.mobile-header-menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.mobile-menu-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  border-bottom: 1px solid var(--app-border);
+  padding-bottom: 5px;
+  margin-bottom: 3px;
+}
+
+.mobile-layers-trigger {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--app-border);
+  padding: 0 7px;
+  color: var(--app-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.mobile-layers-trigger[aria-expanded="true"] {
+  border-color: var(--app-text);
+  color: var(--app-text);
+}
+
+.mobile-layer-count {
+  color: var(--app-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-layers-panel.mobile-layers-closed {
+  display: none;
+}
+
+.mobile-layers-panel.mobile-layers-open {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 15;
+  display: flex;
+  width: min(300px, calc(100vw - 32px));
+  max-height: min(50dvh, 380px);
+  border-color: var(--app-border);
+  background: var(--panel-bg);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 28%);
+}
+
+@media (min-width: 1024px) {
+  .mobile-layers-trigger {
+    display: none;
+  }
+
+  .mobile-layers-panel.mobile-layers-closed,
+  .mobile-layers-panel.mobile-layers-open {
+    position: static;
+    display: flex;
+    width: 252px;
+    max-height: none;
+    box-shadow: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-menu-trigger,
+  .mobile-header-menu {
+    display: none !important;
+  }
+}
+
 .header-secondary-button:hover:not(:disabled) {
   background: var(--panel-subtle);
   color: var(--app-text);
@@ -174,15 +293,15 @@ button:disabled {
 }
 
 .app-shell[data-theme="dark"] .tool-button[aria-pressed="true"] {
-  border-color: #f2f0e9;
-  background: #f2f0e9;
-  color: #10100f;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-inverse);
 }
 
 .app-shell[data-theme="dark"] .tool-button[aria-pressed="true"]:hover {
-  border-color: #fff;
-  background: #fff;
-  color: #10100f;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-inverse);
 }
 
 .app-shell[data-theme="dark"] .clear-dialog-close:hover,
@@ -192,44 +311,44 @@ button:disabled {
 }
 
 .app-shell[data-theme="dark"] .canvas-workspace {
-  background-color: #0d0d0d;
+  background-color: var(--app-bg);
   background-image: none;
   border-color: var(--app-border);
 }
 
 .app-shell[data-theme="dark"] .layer-row-active {
-  border-color: #f2f0e9;
-  background: #1b1b19;
+  border-color: var(--accent);
+  background: var(--panel-subtle);
 }
 
 .app-shell[data-theme="dark"] .layer-row-drop-target {
-  border-color: #f2f0e9;
-  background: #232320;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--panel-subtle) 75%, var(--app-text));
 }
 
 .app-shell[data-theme="dark"] .layer-row-action:hover:not(:disabled),
 .app-shell[data-theme="dark"] .layer-drag-handle:hover {
-  background: #252523;
-  color: #f2f0e9;
+  background: var(--panel-subtle);
+  color: var(--app-text);
 }
 
 .site-cta {
-  border: 1px solid #f2f0e9;
+  border: 1px solid var(--accent);
   border-radius: 2px !important;
-  background: #f2f0e9;
-  color: #111110;
+  background: var(--accent);
+  color: var(--accent-inverse);
   box-shadow: none !important;
 }
 
 .site-cta:hover {
-  background: #dcdad3;
-  color: #111110;
+  background: color-mix(in srgb, var(--accent) 88%, var(--app-bg));
+  color: var(--accent-inverse);
 }
 
 .danger-cta {
-  border: 1px solid #f2f0e9;
-  background: #f2f0e9;
-  color: #111110;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-inverse);
 }
 
 .danger-cta:hover {
@@ -324,13 +443,13 @@ button:disabled {
 }
 
 .app-shell[data-theme="dark"] .site-cta:focus-visible {
-  outline: 2px solid #f2f0e9;
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
 .app-shell[data-theme="dark"] .header-secondary-button:hover:not(:disabled),
 .app-shell[data-theme="dark"] .header-icon-button:hover:not(:disabled) {
-  background: #242422;
+  background: var(--panel-subtle);
   color: var(--app-text);
 }
 
@@ -352,7 +471,7 @@ button:disabled {
 }
 
 .app-shell[data-theme="dark"] .canvas-workspace {
-  background-color: #0d0d0d;
+  background-color: var(--app-bg);
   background-image: none;
 }
 
@@ -401,13 +520,13 @@ button:disabled {
 }
 
 .layer-row-active {
-  border-color: color-mix(in srgb, #f2f0e9 42%, var(--app-border));
-  background: color-mix(in srgb, #f2f0e9 7%, var(--panel-bg));
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--app-border));
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel-bg));
 }
 
 .layer-row-drop-target {
-  border-color: color-mix(in srgb, #f2f0e9 68%, var(--app-border));
-  background: color-mix(in srgb, #f2f0e9 12%, var(--panel-bg));
+  border-color: color-mix(in srgb, var(--accent) 68%, var(--app-border));
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel-bg));
 }
 
 .layer-row-dragging {
@@ -470,7 +589,7 @@ input[type="range"] {
 
 .app-shell[data-theme="dark"] .layer-row-action:hover:not(:disabled),
 .app-shell[data-theme="dark"] .layer-drag-handle:hover {
-  background: #252523;
+  background: var(--panel-subtle);
   color: var(--app-text);
 }
 
@@ -479,19 +598,19 @@ input[type="range"] {
 }
 
 .app-shell[data-theme="dark"] .canvas-settings input:focus-visible {
-  outline: 1px solid #f2f0e9;
+  outline: 1px solid var(--accent);
   outline-offset: 2px;
 }
 
 .app-shell[data-theme="dark"] input[type="checkbox"],
 .app-shell[data-theme="dark"] input[type="range"] {
-  accent-color: #f2f0e9;
+  accent-color: var(--accent);
 }
 
 .app-shell[data-theme="dark"] .tool-button:focus-visible,
 .app-shell[data-theme="dark"] .header-icon-button:focus-visible,
 .app-shell[data-theme="dark"] .header-secondary-button:focus-visible {
-  outline-color: #f2f0e9;
+  outline-color: var(--accent);
 }
 
 .app-shell[data-theme="dark"] .custom-color-picker {
@@ -500,16 +619,16 @@ input[type="range"] {
 
 .app-shell[data-theme="dark"] .clear-dialog-close:hover,
 .app-shell[data-theme="dark"] .theme-muted:hover {
-  background: #242422;
+  background: var(--panel-subtle);
   color: var(--app-text);
 }
 
 .app-shell[data-theme="dark"] .color-palette-swatches button[aria-pressed="true"] {
-  border-color: #f2f0e9;
-  --tw-ring-color: #f2f0e9;
-  --tw-ring-offset-color: #111110;
+  border-color: var(--accent);
+  --tw-ring-color: var(--accent);
+  --tw-ring-offset-color: var(--panel-bg);
 }
 
 .app-shell[data-theme="dark"] .color-palette-swatches button:not([aria-pressed="true"]):hover {
-  border-color: #f2f0e9;
+  border-color: var(--accent);
 }

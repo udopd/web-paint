@@ -10,6 +10,8 @@ export default function CanvasPanel({
   onRenameLayer,
   onDeleteLayer,
   onMoveLayer,
+  className = '',
+  id,
 }) {
   const [editingId, setEditingId] = useState(null)
   const [nameDraft, setNameDraft] = useState('')
@@ -61,7 +63,7 @@ export default function CanvasPanel({
   }
 
   return (
-    <aside className="canvas-settings theme-panel flex max-h-[210px] min-h-0 w-full shrink-0 flex-col overflow-hidden rounded-lg border p-3 lg:max-h-none lg:w-[252px]">
+    <aside id={id} className={`canvas-settings theme-panel flex max-h-[210px] min-h-0 w-full shrink-0 flex-col overflow-hidden rounded-lg border p-3 lg:max-h-none lg:w-[252px] ${className}`}>
       <section className="flex min-h-0 flex-1 flex-col">
         <div className="mb-2 flex shrink-0 items-center justify-between">
           <h4 className="theme-text flex items-center gap-1.5 text-xs font-semibold"><Layers3 size={14} /> Layers</h4>

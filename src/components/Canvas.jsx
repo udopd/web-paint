@@ -43,6 +43,8 @@ const Canvas = forwardRef(function Canvas({
   const nextLayerIdRef = useRef(1)
   const initializedRef = useRef(false)
   const pointerRef = useRef({ active: false, tool: null, start: null, last: null })
+  const touchPointsRef = useRef(new Map())
+  const touchGestureRef = useRef(null)
   const lastCanvasPointRef = useRef(null)
   const pendingImageRef = useRef(null)
   const [viewport, setViewport] = useState({ scale: 1, x: 0, y: 0 })
@@ -483,7 +485,78 @@ const Canvas = forwardRef(function Canvas({
     return (coalesced?.length ? coalesced : [nativeEvent]).map(pointFromEvent)
   }
 
+  const extendSmoothedStroke = (ctx, previous, points) => {
+    let last = previous
+    for (const next of points) {
+      const midpoint = { x: (last.x + next.x) / 2, y: (last.y + next.y) / 2 }
+      ctx.quadraticCurveTo(last.x, last.y, midpoint.x, midpoint.y)
+      last = next
+    }
+    return last
+  }
+
+  const cancelDrawingForTouchGesture = () => {
+    const pointer = pointerRef.current
+    if (!pointer.active || pointer.tool === 'pan') return
+    const layer = activeLayer()
+    if (layer && (pointer.tool === 'brush' || pointer.tool === 'eraser')) {
+      layer.ctx.closePath()
+      layer.ctx.restore()
+      const previous = layer.history.entries[layer.history.index]
+      if (previous) layer.ctx.putImageData(previous, 0, 0)
+      drawComposite()
+    } else {
+      clearPreview()
+    }
+    pointerRef.current = { active: false, tool: null, start: null, last: null }
+  }
+
+  const updateTouchGesture = () => {
+    const gesture = touchGestureRef.current
+    if (!gesture || touchPointsRef.current.size < 2) return
+    const points = [...touchPointsRef.current.values()].slice(0, 2)
+    const midpoint = {
+      x: (points[0].x + points[1].x) / 2,
+      y: (points[0].y + points[1].y) / 2,
+    }
+    const distance = Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y)
+    const scale = Math.max(0.25, Math.min(4, gesture.startViewport.scale * distance / gesture.startDistance))
+    const ratio = scale / gesture.startViewport.scale
+    const anchorX = gesture.startMidpoint.x - gesture.startFrameCenter.x
+    const anchorY = gesture.startMidpoint.y - gesture.startFrameCenter.y
+    setViewport({
+      scale,
+      x: gesture.startViewport.x + anchorX * (1 - ratio) + midpoint.x - gesture.startMidpoint.x,
+      y: gesture.startViewport.y + anchorY * (1 - ratio) + midpoint.y - gesture.startMidpoint.y,
+    })
+  }
+
   const handlePointerDown = (event) => {
+    if (event.pointerType === 'touch') {
+      touchPointsRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      if (touchPointsRef.current.size >= 2) {
+        event.preventDefault()
+        cancelDrawingForTouchGesture()
+        if (!touchGestureRef.current) {
+          const points = [...touchPointsRef.current.values()].slice(0, 2)
+          touchGestureRef.current = {
+            startMidpoint: {
+              x: (points[0].x + points[1].x) / 2,
+              y: (points[0].y + points[1].y) / 2,
+            },
+            startDistance: Math.max(1, Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y)),
+            startViewport: viewport,
+            startFrameCenter: (() => {
+              const bounds = frameRef.current?.getBoundingClientRect()
+              return { x: bounds ? bounds.left + bounds.width / 2 : 0, y: bounds ? bounds.top + bounds.height / 2 : 0 }
+            })(),
+          }
+        }
+        setIsPanning(true)
+        event.currentTarget.setPointerCapture(event.pointerId)
+        return
+      }
+    }
     syncBrushCursor(event)
     if (!activeLayer()) return
     if (event.button === 1 && event.pointerType !== 'touch') {
@@ -544,6 +617,14 @@ const Canvas = forwardRef(function Canvas({
   }
 
   const handlePointerMove = (event) => {
+    if (event.pointerType === 'touch' && touchPointsRef.current.has(event.pointerId)) {
+      touchPointsRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      if (touchGestureRef.current) {
+        event.preventDefault()
+        updateTouchGesture()
+        return
+      }
+    }
     const pointer = pointerRef.current
     if (pointer.active && pointer.tool === 'pan') {
       event.preventDefault()
@@ -565,11 +646,8 @@ const Canvas = forwardRef(function Canvas({
     const points = eventPoints(event)
     const layer = activeLayer()
     if (pointer.tool === 'brush' || pointer.tool === 'eraser') {
-      for (const nextPoint of points) {
-        layer.ctx.lineTo(nextPoint.x, nextPoint.y)
-        layer.ctx.stroke()
-      }
-      pointer.last = points.at(-1)
+      pointer.last = extendSmoothedStroke(layer.ctx, pointer.last, points)
+      layer.ctx.stroke()
       drawComposite()
       return
     }
@@ -603,7 +681,7 @@ const Canvas = forwardRef(function Canvas({
       if (!cancelled) {
         const finalPoint = pointFromEvent(event)
         if (pointer.last && (Math.abs(finalPoint.x - pointer.last.x) > 0.1 || Math.abs(finalPoint.y - pointer.last.y) > 0.1)) {
-          layer.ctx.lineTo(finalPoint.x, finalPoint.y)
+          layer.ctx.quadraticCurveTo(pointer.last.x, pointer.last.y, finalPoint.x, finalPoint.y)
           layer.ctx.stroke()
         }
       }
@@ -613,6 +691,23 @@ const Canvas = forwardRef(function Canvas({
     if (!cancelled || pointer.tool === 'brush' || pointer.tool === 'eraser') takeSnapshot(layer)
     else drawComposite()
     syncBrushCursor(event)
+  }
+
+  const handlePointerEnd = (event, cancelled = false) => {
+    if (event.pointerType === 'touch') {
+      touchPointsRef.current.delete(event.pointerId)
+      if (touchGestureRef.current) {
+        if (touchPointsRef.current.size < 2) {
+          touchGestureRef.current = null
+          pointerRef.current = { active: false, tool: null, start: null, last: null }
+          setIsPanning(false)
+        } else {
+          updateTouchGesture()
+        }
+        return
+      }
+    }
+    finishPointer(event, cancelled)
   }
 
   const handleWheel = (event) => {
@@ -642,8 +737,8 @@ const Canvas = forwardRef(function Canvas({
         aria-label="Drawing surface"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onPointerUp={(event) => finishPointer(event)}
-        onPointerCancel={(event) => finishPointer(event, true)}
+        onPointerUp={(event) => handlePointerEnd(event)}
+        onPointerCancel={(event) => handlePointerEnd(event, true)}
         onWheel={handleWheel}
         onPointerLeave={() => {
           if (!pointerRef.current.active && !pendingImageRef.current) {

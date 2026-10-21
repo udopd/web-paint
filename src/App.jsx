@@ -5,14 +5,14 @@ import {
   Download,
   FolderOpen,
   LoaderCircle,
+  Menu,
+  Layers3,
   Moon,
   Pencil,
-  Redo2,
   Save,
   Settings2,
   Sun,
   Trash2,
-  Undo2,
   X,
 } from 'lucide-react'
 import Canvas from './components/Canvas.jsx'
@@ -188,6 +188,8 @@ export default function App() {
   artworkNameRef.current = artworkName
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mobileLayersOpen, setMobileLayersOpen] = useState(false)
   const [titleDraft, setTitleDraft] = useState(savedProject.title)
   const [hasPendingPaste, setHasPendingPaste] = useState(false)
   const [saveStatus, setSaveStatus] = useState('ready')
@@ -250,6 +252,15 @@ export default function App() {
       document.removeEventListener('keydown', closeOnEscape)
     }
   }, [settingsOpen])
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined
+    const closeOnOutsidePointer = (event) => {
+      if (!event.target.closest?.('.mobile-header-menu, .mobile-menu-trigger')) setMobileMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    return () => document.removeEventListener('pointerdown', closeOnOutsidePointer)
+  }, [mobileMenuOpen])
 
   const handleContentChange = useCallback(() => {
     setHasArtwork(true)
@@ -335,6 +346,7 @@ export default function App() {
   }
 
   const handleShowProjects = () => {
+    setMobileMenuOpen(false)
     projectSaveTokenRef.current += 1
     pageRef.current = 'projects'
     const project = persistCurrentDraft()
@@ -597,6 +609,10 @@ export default function App() {
         }
         return
       }
+      if (event.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false)
+        return
+      }
       const control = target instanceof HTMLElement && ['INPUT', 'SELECT'].includes(target.tagName)
       if (control) return
       if (event.key === 'Escape' && hasPendingPaste) {
@@ -638,7 +654,7 @@ export default function App() {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [clearDialogOpen, hasPendingPaste, projectToDelete, tool])
+  }, [clearDialogOpen, hasPendingPaste, mobileMenuOpen, projectToDelete, tool])
 
   const handleClear = () => {
     skipSaveRevisionRef.current = saveRevisionRef.current + 1
@@ -684,11 +700,11 @@ export default function App() {
       <header className="theme-header z-20 shrink-0 border-b backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-3 px-3 sm:px-5 lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="brand-wordmark">SUPER CUBE</span>
+            <a className="brand-wordmark" href="https://udopd.ru" target="_blank" rel="noreferrer" aria-label="Open udopd.ru in a new tab">SUPER CUBE</a>
             <span className="h-5 w-px shrink-0 bg-[var(--app-border)]" aria-hidden="true" />
           <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="theme-text truncate text-sm font-semibold tracking-tight">{page === 'projects' ? 'Projects' : 'Paint'}</h1>
+                <h1 className="theme-text truncate text-sm font-semibold tracking-tight">{page === 'projects' ? 'Projects' : 'Canvas'}</h1>
               </div>
               {page === 'editor' && <div className={`mt-0.5 flex items-center gap-1.5 text-[10px] ${status.tone}`} aria-live="polite">
                 <StatusIcon size={12} className={saveStatus === 'saving' ? 'animate-spin' : ''} />
@@ -697,28 +713,33 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            {page === 'editor' && <>
-            <div className="theme-action-group mr-1 hidden items-center rounded-lg border p-0.5 sm:flex">
-              <button type="button" onClick={() => canvasRef.current?.undo()} disabled={!canUndo} title="Undo (Ctrl+Z)" aria-label="Undo" className="header-icon-button" ><Undo2 size={17} /></button>
-              <button type="button" onClick={() => canvasRef.current?.redo()} disabled={!canRedo} title="Redo (Ctrl+Y)" aria-label="Redo" className="header-icon-button"><Redo2 size={17} /></button>
+          <div className="relative flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <div className="hidden items-center gap-1.5 md:flex">
+              {page === 'editor' && <>
+                <button type="button" onClick={handleSaveProject} disabled={!canvasReady} className="header-secondary-button disabled:cursor-not-allowed disabled:opacity-50" aria-label="Save project"><Save size={15} /><span>Save project</span></button>
+                <button type="button" onClick={handleShowProjects} className="header-secondary-button" aria-label="Open projects"><FolderOpen size={15} /><span>Projects</span></button>
+              </>}
+              <button type="button" onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`} className="header-icon-button">
+                {theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}
+              </button>
+              {page === 'editor' ? <>
+                <button type="button" onClick={() => setClearDialogOpen(true)} disabled={!canvasReady} className="header-secondary-button disabled:cursor-not-allowed disabled:opacity-50" aria-label="Clear canvas"><Trash2 size={16} /><span>Clear</span></button>
+                <button type="button" onClick={handleExport} className="site-cta flex h-10 items-center gap-2 px-3 text-sm font-semibold transition focus-visible:outline-none sm:px-4"><Download size={16} /><span>Export PNG</span></button>
+              </> : <button type="button" onClick={handleBackToEditor} className="header-secondary-button">Back to editor</button>}
             </div>
-            <button type="button" onClick={handleSaveProject} disabled={!canvasReady} className="header-secondary-button disabled:cursor-not-allowed disabled:opacity-50" aria-label="Save project"><Save size={15} /><span className="hidden sm:inline">Save project</span></button>
-            <button type="button" onClick={handleShowProjects} className="header-secondary-button" aria-label="Open projects"><FolderOpen size={15} /><span className="hidden sm:inline">Projects</span></button>
-            </>}
-            <button
-              type="button"
-              onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}
-              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
-              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
-              className="header-icon-button"
-            >
-              {theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}
-            </button>
-            {page === 'editor' ? <>
-              <button type="button" onClick={() => setClearDialogOpen(true)} disabled={!canvasReady} className="header-secondary-button disabled:cursor-not-allowed disabled:opacity-50" aria-label="Clear canvas"><Trash2 size={16} /><span className="hidden md:inline">Clear</span></button>
-              <button type="button" onClick={handleExport} className="site-cta flex h-10 items-center gap-2 px-3 text-sm font-semibold transition focus-visible:outline-none sm:px-4"><Download size={16} /><span>Export PNG</span></button>
-            </> : <button type="button" onClick={handleBackToEditor} className="header-secondary-button">Back to editor</button>}
+            {page === 'editor' ? <button type="button" onClick={() => setMobileMenuOpen((open) => !open)} className="header-icon-button mobile-menu-trigger md:hidden" aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'} aria-expanded={mobileMenuOpen}>
+              {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
+            </button> : <div className="flex items-center gap-1 md:hidden">
+              <button type="button" onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`} className="header-icon-button">{theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}</button>
+              <button type="button" onClick={handleBackToEditor} className="header-secondary-button">Editor</button>
+            </div>}
+            {mobileMenuOpen && page === 'editor' && <div className="mobile-header-menu md:hidden" aria-label="Canvas actions">
+              <button type="button" onClick={() => { setMobileMenuOpen(false); void handleSaveProject() }} disabled={!canvasReady}><Save size={15} />Save project</button>
+              <button type="button" onClick={handleShowProjects}><FolderOpen size={15} />Projects</button>
+              <button type="button" onClick={() => { setTheme((current) => current === 'light' ? 'dark' : 'light'); setMobileMenuOpen(false) }}>{theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}{theme === 'light' ? 'Dark theme' : 'Light theme'}</button>
+              <button type="button" onClick={() => { setClearDialogOpen(true); setMobileMenuOpen(false) }} disabled={!canvasReady}><Trash2 size={15} />Clear canvas</button>
+              <button type="button" onClick={() => { handleExport(); setMobileMenuOpen(false) }}><Download size={15} />Export PNG</button>
+            </div>}
           </div>
         </div>
       </header>
@@ -734,6 +755,10 @@ export default function App() {
             onColorChange={setColor}
             brushSize={brushSize}
             onBrushSizeChange={setBrushSize}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={() => canvasRef.current?.undo()}
+            onRedo={() => canvasRef.current?.redo()}
           />
 
           <section className="theme-panel flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border p-2 shadow-sm sm:p-3" aria-label="Canvas workspace">
@@ -773,14 +798,15 @@ export default function App() {
                   </div>
                 )}
               </div>
-              <div className="theme-muted flex shrink-0 items-center gap-2 text-[10px]">
+              <div className="theme-muted flex min-w-0 shrink-0 items-center gap-2 text-[10px]">
                 <span className="hidden sm:inline">{canvasSize.width} × {canvasSize.height}</span>
                 {hasPendingPaste && <span className="paste-hint-active" title="Move the pointer and click to place, or press Escape to cancel">Move image · click to place · Esc to cancel</span>}
-                {hasArtwork && <span className="canvas-meta-status inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-white/40" /> Edited</span>}
+                {hasArtwork && <span className="canvas-meta-status hidden items-center gap-1 sm:inline-flex"><span className="h-1.5 w-1.5 rounded-full bg-white/40" /> Edited</span>}
+                <button type="button" onClick={() => setMobileLayersOpen((open) => !open)} className="mobile-layers-trigger lg:hidden" aria-expanded={mobileLayersOpen} aria-controls="canvas-layers-panel"><Layers3 size={13} /><span>Layers</span><span className="mobile-layer-count">{layers.length}</span></button>
               </div>
             </div>
 
-            <div className="canvas-layout flex min-h-0 flex-1 flex-col gap-2 lg:flex-row lg:gap-3">
+            <div className="canvas-layout relative flex min-h-0 flex-1 flex-col gap-2 lg:flex-row lg:gap-3">
               <div className="canvas-workspace flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-lg border p-2 sm:p-3">
                 <Canvas
                   key={canvasMountKey}
@@ -802,6 +828,8 @@ export default function App() {
                 />
               </div>
               <CanvasPanel
+                id="canvas-layers-panel"
+                className={`mobile-layers-panel ${mobileLayersOpen ? 'mobile-layers-open' : 'mobile-layers-closed'}`}
                 layers={layers}
                 activeLayerId={activeLayerId}
                 onAddLayer={() => canvasRef.current?.addLayer()}

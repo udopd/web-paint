@@ -5,7 +5,9 @@ import {
   MousePointer2,
   PaintBucket,
   Pencil,
+  Redo2,
   RectangleHorizontal,
+  Undo2,
 } from 'lucide-react'
 import { PALETTE, TOOLS } from '../constants.js'
 
@@ -19,10 +21,10 @@ const ICONS = {
   picker: MousePointer2,
 }
 
-export default function Toolbar({ tool, onToolChange, color, onColorChange, brushSize, onBrushSizeChange }) {
+export default function Toolbar({ tool, onToolChange, color, onColorChange, brushSize, onBrushSizeChange, canUndo, canRedo, onUndo, onRedo }) {
   return (
     <aside className="theme-panel flex shrink-0 flex-col gap-3 rounded-xl border p-2.5 shadow-sm sm:p-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
-      <div className="flex min-w-0 items-center gap-1.5">
+      <div className="flex min-w-0 items-center gap-1.5 lg:flex-1">
         <div className="flex flex-wrap items-center gap-1">
           {TOOLS.map((item) => {
             const Icon = ICONS[item.id]
@@ -44,9 +46,13 @@ export default function Toolbar({ tool, onToolChange, color, onColorChange, brus
           })}
         </div>
         <span className="theme-muted hidden whitespace-nowrap text-[10px] xl:inline">{TOOLS.find((item) => item.id === tool)?.label}</span>
+        <div className="theme-action-group ml-auto flex shrink-0 items-center rounded-lg border p-0.5">
+          <button type="button" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)" aria-label="Undo" className="header-icon-button disabled:cursor-not-allowed disabled:opacity-35"><Undo2 size={16} /></button>
+          <button type="button" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Y / Ctrl+Shift+Z)" aria-label="Redo" className="header-icon-button disabled:cursor-not-allowed disabled:opacity-35"><Redo2 size={16} /></button>
+        </div>
       </div>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-2.5 lg:justify-end lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-2.5 lg:ml-auto lg:justify-end lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
         <div className="flex items-center gap-2">
             <label htmlFor="brush-size" className="theme-muted whitespace-nowrap text-[11px] font-medium">Size</label>
             <input
@@ -87,6 +93,7 @@ export default function Toolbar({ tool, onToolChange, color, onColorChange, brus
             />
           </label>
         </div>
+
       </div>
     </aside>
   )
