@@ -2,18 +2,18 @@ export const CANVAS_WIDTH = 1200
 export const CANVAS_HEIGHT = 750
 export const STORAGE_KEY = 'canvas-paint-studio:artwork:v1'
 export const TITLE_STORAGE_KEY = 'canvas-paint-studio:title:v1'
+export const PROJECTS_STORAGE_KEY = 'sc-canvas:projects:v1'
 export const DEFAULT_ARTWORK_TITLE = 'Untitled artwork'
 export const MAX_HISTORY = 8
 
 export const TOOLS = [
   { id: 'brush', label: 'Brush', shortcut: 'B' },
   { id: 'eraser', label: 'Eraser', shortcut: 'E' },
-  { id: 'rectangle', label: 'Rectangle', shortcut: 'R' },
-  { id: 'ellipse', label: 'Ellipse', shortcut: 'O' },
-  { id: 'line', label: 'Line', shortcut: 'L' },
+  { id: 'rectangle', label: 'Rectangle', shortcut: 'U' },
+  { id: 'ellipse', label: 'Ellipse', shortcut: 'U' },
+  { id: 'line', label: 'Line', shortcut: 'U' },
   { id: 'fill', label: 'Fill', shortcut: 'G' },
   { id: 'picker', label: 'Picker', shortcut: 'I' },
-  { id: 'text', label: 'Text', shortcut: 'T' },
 ]
 
 export const PALETTE = [

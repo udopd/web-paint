@@ -6,7 +6,7 @@ A responsive browser paint app built with React, Vite, Tailwind CSS, Lucide Reac
 
 ```bash
 npm install
-npm install
+npm run dev
 ```
 
 ## Drawing tools
@@ -21,3 +21,16 @@ npm install
 - Persistent light and dark themes in a scroll-free, viewport-fitted workspace
 
 Artwork stays in the browser's local storage. The canvas renders at device pixel ratio (capped at 2×) and exports at its full backing resolution.
+
+```bash
+git add .
+```
+```bash
+git commit -m "commit"
+```
+```bash
+git branch -M main
+```
+```bash
+git push -u origin main
+```
