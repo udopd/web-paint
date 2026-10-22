@@ -3,6 +3,10 @@
     {
       "source": "/projects",
       "destination": "/"
+    },
+    {
+      "source": "/canvas",
+      "destination": "/"
     }
   ]
 }

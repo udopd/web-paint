@@ -4,6 +4,7 @@ import {
   Cloud,
   Download,
   FolderOpen,
+  House,
   LoaderCircle,
   Menu,
   Layers3,
@@ -18,6 +19,7 @@ import {
 import Canvas from './components/Canvas.jsx'
 import CanvasPanel from './components/CanvasPanel.jsx'
 import CanvasSettings from './components/CanvasSettings.jsx'
+import HeroPage from './components/HeroPage.jsx'
 import ProjectsPage from './components/ProjectsPage.jsx'
 import Toolbar from './components/Toolbar.jsx'
 import {
@@ -159,7 +161,10 @@ export default function App() {
   const initialArtwork = canvasSource.artwork
   const initialProject = canvasSource.project
   const [canvasMountKey, setCanvasMountKey] = useState(0)
-  const [page, setPage] = useState(() => window.location.pathname.replace(/\/+$/, '') === '/projects' ? 'projects' : 'editor')
+  const [page, setPage] = useState(() => {
+    const path = window.location.pathname.replace(/\/+$/, '') || '/'
+    return path === '/projects' ? 'projects' : path === '/canvas' ? 'editor' : 'home'
+  })
   const pageRef = useRef(page)
   pageRef.current = page
   const [projects, setProjects] = useState(readSavedProjects)
@@ -205,7 +210,7 @@ export default function App() {
   const [hasArtwork, setHasArtwork] = useState(Boolean(initialArtwork || initialProject))
 
   const navigateToPage = useCallback((nextPage) => {
-    const nextPath = nextPage === 'projects' ? '/projects' : '/'
+    const nextPath = nextPage === 'projects' ? '/projects' : nextPage === 'editor' ? '/canvas' : '/'
     if (window.location.pathname !== nextPath) window.history.pushState({}, '', nextPath)
     pageRef.current = nextPage
     setPage(nextPage)
@@ -213,8 +218,9 @@ export default function App() {
 
   useEffect(() => {
     const handlePopState = () => {
-      const nextPage = window.location.pathname.replace(/\/+$/, '') === '/projects' ? 'projects' : 'editor'
-      if (nextPage === 'projects' && pageRef.current === 'editor') {
+      const path = window.location.pathname.replace(/\/+$/, '') || '/'
+      const nextPage = path === '/projects' ? 'projects' : path === '/canvas' ? 'editor' : 'home'
+      if (nextPage !== 'editor' && pageRef.current === 'editor') {
         const project = persistCurrentDraft()
         if (project) setCanvasSource({ artwork: null, project })
         setCanvasReady(false)
@@ -355,6 +361,19 @@ export default function App() {
     setSaveRevision(0)
     saveRevisionRef.current = 0
     navigateToPage('projects')
+  }
+
+  const handleGoHome = () => {
+    setMobileMenuOpen(false)
+    if (pageRef.current === 'editor') {
+      projectSaveTokenRef.current += 1
+      const project = persistCurrentDraft()
+      if (project) setCanvasSource({ artwork: null, project })
+      setCanvasReady(false)
+      setSaveRevision(0)
+      saveRevisionRef.current = 0
+    }
+    navigateToPage('home')
   }
 
   const handleBackToEditor = () => {
@@ -704,7 +723,7 @@ export default function App() {
             <span className="h-5 w-px shrink-0 bg-[var(--app-border)]" aria-hidden="true" />
           <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="theme-text truncate text-sm font-semibold tracking-tight">{page === 'projects' ? 'Projects' : 'Canvas'}</h1>
+                <h1 className={`theme-text truncate text-sm font-semibold tracking-tight ${page === 'home' ? 'max-[380px]:hidden' : ''}`}>{page === 'projects' ? 'Projects' : 'Canvas'}</h1>
               </div>
               {page === 'editor' && <div className={`mt-0.5 flex items-center gap-1.5 text-[10px] ${status.tone}`} aria-live="polite">
                 <StatusIcon size={12} className={saveStatus === 'saving' ? 'animate-spin' : ''} />
@@ -716,6 +735,7 @@ export default function App() {
           <div className="relative flex shrink-0 items-center gap-1.5 sm:gap-2">
             <div className="hidden items-center gap-1.5 md:flex">
               {page === 'editor' && <>
+                <button type="button" onClick={handleGoHome} className="header-secondary-button" aria-label="Go to home"><House size={15} /><span>Home</span></button>
                 <button type="button" onClick={handleSaveProject} disabled={!canvasReady} className="header-secondary-button disabled:cursor-not-allowed disabled:opacity-50" aria-label="Save project"><Save size={15} /><span>Save project</span></button>
                 <button type="button" onClick={handleShowProjects} className="header-secondary-button" aria-label="Open projects"><FolderOpen size={15} /><span>Projects</span></button>
               </>}
@@ -725,15 +745,21 @@ export default function App() {
               {page === 'editor' ? <>
                 <button type="button" onClick={() => setClearDialogOpen(true)} disabled={!canvasReady} className="header-secondary-button disabled:cursor-not-allowed disabled:opacity-50" aria-label="Clear canvas"><Trash2 size={16} /><span>Clear</span></button>
                 <button type="button" onClick={handleExport} className="site-cta flex h-10 items-center gap-2 px-3 text-sm font-semibold transition focus-visible:outline-none sm:px-4"><Download size={16} /><span>Export PNG</span></button>
-              </> : <button type="button" onClick={handleBackToEditor} className="header-secondary-button">Back to editor</button>}
+              </> : page === 'projects' ? <>
+                <button type="button" onClick={handleGoHome} className="header-secondary-button"><House size={15} /><span>Home</span></button>
+                <button type="button" onClick={handleBackToEditor} className="header-secondary-button">Back to editor</button>
+              </> : null}
             </div>
             {page === 'editor' ? <button type="button" onClick={() => setMobileMenuOpen((open) => !open)} className="header-icon-button mobile-menu-trigger md:hidden" aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'} aria-expanded={mobileMenuOpen}>
               {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
             </button> : <div className="flex items-center gap-1 md:hidden">
               <button type="button" onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`} className="header-icon-button">{theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}</button>
-              <button type="button" onClick={handleBackToEditor} className="header-secondary-button">Editor</button>
+              {page === 'projects'
+                ? <><button type="button" onClick={handleGoHome} className="header-icon-button" aria-label="Home"><House size={16} /></button><button type="button" onClick={handleBackToEditor} className="header-secondary-button">Editor</button></>
+                : null}
             </div>}
             {mobileMenuOpen && page === 'editor' && <div className="mobile-header-menu md:hidden" aria-label="Canvas actions">
+              <button type="button" onClick={handleGoHome}><House size={15} />Home</button>
               <button type="button" onClick={() => { setMobileMenuOpen(false); void handleSaveProject() }} disabled={!canvasReady}><Save size={15} />Save project</button>
               <button type="button" onClick={handleShowProjects}><FolderOpen size={15} />Projects</button>
               <button type="button" onClick={() => { setTheme((current) => current === 'light' ? 'dark' : 'light'); setMobileMenuOpen(false) }}>{theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}{theme === 'light' ? 'Dark theme' : 'Light theme'}</button>
@@ -747,6 +773,13 @@ export default function App() {
       <div className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col gap-3 overflow-hidden px-3 py-3 sm:gap-4 sm:px-5 sm:py-4 lg:px-8">
         {page === 'projects' ? (
           <ProjectsPage projects={projects} onOpen={handleOpenProject} onNew={handleNewProject} onBack={handleBackToEditor} onDelete={setProjectToDelete} />
+        ) : page === 'home' ? (
+          <HeroPage
+            hasDraft={Boolean(canvasSource.artwork || canvasSource.project)}
+            onContinue={handleBackToEditor}
+            onNew={handleNewProject}
+            onProjects={handleShowProjects}
+          />
         ) : <>
           <Toolbar
             tool={tool}
