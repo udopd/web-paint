@@ -93,6 +93,20 @@ function readSavedProjects() {
   }
 }
 
+function dataUrlToBlob(dataUrl) {
+  const match = /^data:([^;,]+);base64,(.+)$/.exec(dataUrl)
+  if (!match) return null
+  const binary = window.atob(match[2])
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index)
+  return new Blob([bytes], { type: match[1] })
+}
+
+function isAppleMobileBrowser() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+}
+
 function createPreview(dataUrl) {
   return new Promise((resolve) => {
     const image = new Image()
@@ -697,13 +711,35 @@ export default function App() {
   const handleExport = () => {
     const dataUrl = canvasRef.current?.getDataUrl()
     if (!dataUrl) return
-    const link = document.createElement('a')
-    link.href = dataUrl
     const safeName = artworkName.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'canvas-artwork'
+    const blob = dataUrlToBlob(dataUrl)
+    if (!blob) return
+    const file = new File([blob], `${safeName}.png`, { type: 'image/png' })
+
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      navigator.share({ files: [file], title: safeName }).catch((error) => {
+        if (error.name === 'AbortError') return
+        openExportFile(file, safeName, true)
+      })
+      return
+    }
+
+    openExportFile(file, safeName, isAppleMobileBrowser())
+  }
+
+  const openExportFile = (file, safeName, openInNewTab) => {
+    const fileUrl = URL.createObjectURL(file)
+    const link = document.createElement('a')
+    link.href = fileUrl
     link.download = `${safeName}.png`
+    if (openInNewTab) {
+      link.target = '_blank'
+      link.rel = 'noopener'
+    }
     document.body.appendChild(link)
     link.click()
     link.remove()
+    window.setTimeout(() => URL.revokeObjectURL(fileUrl), openInNewTab ? 60000 : 1000)
   }
 
   const status = {
