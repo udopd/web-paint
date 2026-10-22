@@ -21,7 +21,7 @@ const ICONS = {
   picker: MousePointer2,
 }
 
-export default function Toolbar({ tool, onToolChange, color, onColorChange, brushSize, onBrushSizeChange, canUndo, canRedo, onUndo, onRedo }) {
+export default function Toolbar({ tool, onToolChange, color, onColorChange, brushSize, onBrushSizeChange, canUndo, canRedo, onUndo, onRedo, brushSizeId = 'brush-size' }) {
   return (
     <aside className="theme-panel flex shrink-0 flex-col gap-3 rounded-xl border p-2.5 shadow-sm sm:p-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
       <div className="flex min-w-0 items-center gap-1.5 lg:flex-1">
@@ -54,9 +54,9 @@ export default function Toolbar({ tool, onToolChange, color, onColorChange, brus
 
       <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-2.5 lg:ml-auto lg:justify-end lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
         <div className="flex items-center gap-2">
-            <label htmlFor="brush-size" className="theme-muted whitespace-nowrap text-[11px] font-medium">Size</label>
+            <label htmlFor={brushSizeId} className="theme-muted whitespace-nowrap text-[11px] font-medium">Size</label>
             <input
-              id="brush-size"
+              id={brushSizeId}
               type="range"
               min="1"
               max="50"

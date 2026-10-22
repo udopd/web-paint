@@ -163,7 +163,8 @@ button:disabled {
   transition: background-color 120ms ease, color 120ms ease;
 }
 
-.mobile-menu-trigger {
+.mobile-menu-trigger,
+.mobile-toolbar-trigger {
   border: 1px solid var(--app-border);
 }
 
@@ -271,6 +272,7 @@ button:disabled {
 
 @media (min-width: 768px) {
   .mobile-menu-trigger,
+  .mobile-toolbar-trigger,
   .mobile-header-menu {
     display: none !important;
   }

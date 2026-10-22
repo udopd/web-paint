@@ -8,6 +8,7 @@ import {
   LoaderCircle,
   Menu,
   Layers3,
+  SlidersHorizontal,
   Moon,
   Pencil,
   Save,
@@ -208,6 +209,7 @@ export default function App() {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mobileToolbarOpen, setMobileToolbarOpen] = useState(true)
   const [mobileLayersOpen, setMobileLayersOpen] = useState(false)
   const [titleDraft, setTitleDraft] = useState(savedProject.title)
   const [hasPendingPaste, setHasPendingPaste] = useState(false)
@@ -642,8 +644,9 @@ export default function App() {
         }
         return
       }
-      if (event.key === 'Escape' && mobileMenuOpen) {
+      if (event.key === 'Escape' && (mobileMenuOpen || mobileToolbarOpen)) {
         setMobileMenuOpen(false)
+        setMobileToolbarOpen(false)
         return
       }
       const control = target instanceof HTMLElement && ['INPUT', 'SELECT'].includes(target.tagName)
@@ -687,7 +690,7 @@ export default function App() {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [clearDialogOpen, hasPendingPaste, mobileMenuOpen, projectToDelete, tool])
+  }, [clearDialogOpen, hasPendingPaste, mobileMenuOpen, mobileToolbarOpen, projectToDelete, tool])
 
   const handleClear = () => {
     skipSaveRevisionRef.current = saveRevisionRef.current + 1
@@ -752,7 +755,7 @@ export default function App() {
 
   return (
     <main data-theme={theme} className="app-shell flex h-[100dvh] min-h-0 flex-col overflow-hidden">
-      <header className="theme-header z-20 shrink-0 border-b backdrop-blur-xl">
+      <header className="theme-header relative z-20 shrink-0 border-b backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-3 px-3 sm:px-5 lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <a className="brand-wordmark" href="https://udopd.ru" target="_blank" rel="noreferrer" aria-label="Open udopd.ru in a new tab">SUPER CUBE</a>
@@ -786,9 +789,14 @@ export default function App() {
                 <button type="button" onClick={handleBackToEditor} className="header-secondary-button">Back to editor</button>
               </> : null}
             </div>
-            {page === 'editor' ? <button type="button" onClick={() => setMobileMenuOpen((open) => !open)} className="header-icon-button mobile-menu-trigger md:hidden" aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'} aria-expanded={mobileMenuOpen}>
-              {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
-            </button> : <div className="flex items-center gap-1 md:hidden">
+            {page === 'editor' ? <div className="flex items-center gap-1.5 md:hidden">
+              <button type="button" onClick={() => { setMobileToolbarOpen((open) => !open); setMobileMenuOpen(false) }} className="header-icon-button mobile-toolbar-trigger" aria-label={mobileToolbarOpen ? 'Collapse tools' : 'Expand tools'} aria-expanded={mobileToolbarOpen} title={mobileToolbarOpen ? 'Collapse tools' : 'Expand tools'}>
+                <SlidersHorizontal size={17} />
+              </button>
+              <button type="button" onClick={() => { setMobileMenuOpen((open) => !open); setMobileToolbarOpen(false) }} className="header-icon-button mobile-menu-trigger" aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'} aria-expanded={mobileMenuOpen}>
+                {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
+              </button>
+            </div> : <div className="flex items-center gap-1 md:hidden">
               <button type="button" onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`} className="header-icon-button">{theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}</button>
               {page === 'projects'
                 ? <><button type="button" onClick={handleGoHome} className="header-icon-button" aria-label="Home"><House size={16} /></button><button type="button" onClick={handleBackToEditor} className="header-secondary-button">Editor</button></>
@@ -804,6 +812,21 @@ export default function App() {
             </div>}
           </div>
         </div>
+        {page === 'editor' && <div className={`mobile-toolbar-panel px-3 pb-2 sm:px-5 md:hidden ${mobileToolbarOpen ? 'block' : 'hidden'}`}>
+          <Toolbar
+            brushSizeId="brush-size-mobile"
+            tool={tool}
+            onToolChange={setTool}
+            color={color}
+            onColorChange={setColor}
+            brushSize={brushSize}
+            onBrushSizeChange={setBrushSize}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={() => canvasRef.current?.undo()}
+            onRedo={() => canvasRef.current?.redo()}
+          />
+        </div>}
       </header>
 
       <div className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col gap-3 overflow-hidden px-3 py-3 sm:gap-4 sm:px-5 sm:py-4 lg:px-8">
@@ -817,7 +840,9 @@ export default function App() {
             onProjects={handleShowProjects}
           />
         ) : <>
+          <div className="hidden md:block">
           <Toolbar
+            brushSizeId="brush-size-desktop"
             tool={tool}
             onToolChange={setTool}
             color={color}
@@ -829,6 +854,7 @@ export default function App() {
             onUndo={() => canvasRef.current?.undo()}
             onRedo={() => canvasRef.current?.redo()}
           />
+          </div>
 
           <section className="theme-panel flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border p-2 shadow-sm sm:p-3" aria-label="Canvas workspace">
             <div className="flex shrink-0 items-center justify-between gap-3 px-1 pb-2 sm:px-2">
