@@ -117,7 +117,7 @@ export default function Toolbar({
           </select>
         </div>}
         <div className="flex items-center gap-2">
-            <label htmlFor={brushSizeId} className="theme-muted whitespace-nowrap text-[11px] font-medium">Size</label>
+            <label htmlFor={brushSizeId} title="Shift + mouse wheel over canvas" className="theme-muted whitespace-nowrap text-[11px] font-medium">Size</label>
             <input
               id={brushSizeId}
               type="range"
@@ -127,6 +127,7 @@ export default function Toolbar({
               onChange={(event) => onBrushSizeChange(Number(event.target.value))}
               className="w-[88px] accent-indigo-600 sm:w-[112px]"
               aria-label="Brush size"
+              title="Use Shift + mouse wheel over the canvas to change size"
             />
             <span className="theme-muted w-7 text-right font-mono text-[10px] tabular-nums">{brushSize}px</span>
         </div>

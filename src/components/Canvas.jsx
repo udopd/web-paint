@@ -15,6 +15,7 @@ const Canvas = forwardRef(function Canvas({
   tool,
   color,
   brushSize,
+  onBrushSizeChange,
   fillMode = 'solid',
   gradientColor = '#ffffff',
   gradientDirection = 'horizontal',
@@ -207,21 +208,31 @@ const Canvas = forwardRef(function Canvas({
 
   const drawSelectionOutline = (ctx, selection) => {
     if (!selection || selection.width <= 0 || selection.height <= 0) return
+    const bounds = frameRef.current?.getBoundingClientRect()
+    const { width: canvasWidth } = dimensionsRef.current
+    // Keep the marching ants and handles at a one-CSS-pixel stroke even when
+    // the canvas is shown smaller or zoomed in/out.
+    const pixel = canvasWidth / (bounds?.width || canvasWidth)
+    const snap = (value) => Math.round(value / pixel - 0.5) * pixel + pixel / 2
+    const x = snap(selection.x)
+    const y = snap(selection.y)
+    const right = snap(selection.x + selection.width)
+    const bottom = snap(selection.y + selection.height)
     ctx.save()
-    ctx.lineWidth = 1
-    ctx.setLineDash([4, 3])
+    ctx.lineWidth = pixel
+    ctx.setLineDash([4 * pixel, 3 * pixel])
     ctx.strokeStyle = '#ffffff'
-    ctx.strokeRect(selection.x + 0.5, selection.y + 0.5, selection.width, selection.height)
-    ctx.lineDashOffset = 4
+    ctx.strokeRect(x, y, right - x, bottom - y)
+    ctx.lineDashOffset = 4 * pixel
     ctx.strokeStyle = '#111111'
-    ctx.strokeRect(selection.x + 0.5, selection.y + 0.5, selection.width, selection.height)
-    const handleSize = 8
+    ctx.strokeRect(x, y, right - x, bottom - y)
+    const handleSize = 8 * pixel
     const halfHandle = handleSize / 2
     const handlePoints = [
-      [selection.x, selection.y], [selection.x + selection.width / 2, selection.y], [selection.x + selection.width, selection.y],
-      [selection.x + selection.width, selection.y + selection.height / 2], [selection.x + selection.width, selection.y + selection.height],
-      [selection.x + selection.width / 2, selection.y + selection.height], [selection.x, selection.y + selection.height],
-      [selection.x, selection.y + selection.height / 2],
+      [x, y], [snap(selection.x + selection.width / 2), y], [right, y],
+      [right, snap(selection.y + selection.height / 2)], [right, bottom],
+      [snap(selection.x + selection.width / 2), bottom], [x, bottom],
+      [x, snap(selection.y + selection.height / 2)],
     ]
     ctx.setLineDash([])
     for (const [x, y] of handlePoints) {
@@ -426,6 +437,15 @@ const Canvas = forwardRef(function Canvas({
       drawComposite()
       notifyHistory()
       onContentChange?.()
+    },
+    deleteSelection() {
+      const selection = selectionRef.current
+      const layer = activeLayer()
+      if (!selection || !layer || pointerRef.current.active) return false
+      layer.ctx.clearRect(selection.x, selection.y, selection.width, selection.height)
+      takeSnapshot(layer)
+      drawSelectionPreview()
+      return true
     },
     clear() {
       clearPendingImage()
@@ -1006,6 +1026,11 @@ const Canvas = forwardRef(function Canvas({
 
   const handleWheel = (event) => {
     event.preventDefault()
+    if (event.shiftKey && (tool === 'brush' || tool === 'eraser')) {
+      const direction = event.deltaY < 0 ? 1 : -1
+      onBrushSizeChange?.((current) => Math.max(1, Math.min(50, current + direction)))
+      return
+    }
     const bounds = event.currentTarget.getBoundingClientRect()
     const anchorX = event.clientX - (bounds.left + bounds.width / 2)
     const anchorY = event.clientY - (bounds.top + bounds.height / 2)

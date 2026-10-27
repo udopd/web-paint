@@ -690,6 +690,11 @@ export default function App() {
       }
       const control = target instanceof HTMLElement && ['INPUT', 'SELECT'].includes(target.tagName)
       if (control) return
+      if (!modifier && (key === 'delete' || key === 'backspace') && tool === 'selection') {
+        event.preventDefault()
+        canvasRef.current?.deleteSelection()
+        return
+      }
       if (event.key === 'Escape' && hasPendingPaste) {
         event.preventDefault()
         canvasRef.current?.cancelPendingImage()
@@ -981,6 +986,7 @@ export default function App() {
                   tool={tool}
                   color={color}
                   brushSize={brushSize}
+                  onBrushSizeChange={setBrushSize}
                   fillMode={fillMode}
                   gradientColor={gradientColor}
                   gradientDirection={gradientDirection}
