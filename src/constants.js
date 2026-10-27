@@ -7,6 +7,7 @@ export const DEFAULT_ARTWORK_TITLE = 'Untitled artwork'
 export const MAX_HISTORY = 8
 
 export const TOOLS = [
+  { id: 'selection', label: 'Select', shortcut: 'M' },
   { id: 'brush', label: 'Brush', shortcut: 'B' },
   { id: 'eraser', label: 'Eraser', shortcut: 'E' },
   { id: 'rectangle', label: 'Rectangle', shortcut: 'U' },
@@ -14,6 +15,7 @@ export const TOOLS = [
   { id: 'line', label: 'Line', shortcut: 'U' },
   { id: 'fill', label: 'Fill', shortcut: 'G' },
   { id: 'picker', label: 'Picker', shortcut: 'I' },
+  { id: 'text', label: 'Text', shortcut: 'T' },
 ]
 
 export const PALETTE = [

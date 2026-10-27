@@ -4,10 +4,10 @@ import {
   Cloud,
   Download,
   FolderOpen,
-  House,
   LoaderCircle,
   Menu,
   Layers3,
+  Plus,
   SlidersHorizontal,
   Moon,
   Pencil,
@@ -201,6 +201,14 @@ export default function App() {
   const [tool, setTool] = useState('brush')
   const [color, setColor] = useState('#4f46e5')
   const [brushSize, setBrushSize] = useState(8)
+  const [fillMode, setFillMode] = useState('solid')
+  const [gradientColor, setGradientColor] = useState('#ffffff')
+  const [gradientDirection, setGradientDirection] = useState('horizontal')
+  const [textSize, setTextSize] = useState(32)
+  const [textFont, setTextFont] = useState('Arial')
+  const [textBold, setTextBold] = useState(false)
+  const [textItalic, setTextItalic] = useState(false)
+  const [textAlign, setTextAlign] = useState('left')
   const [canvasSize, setCanvasSize] = useState({ width: savedProject.width, height: savedProject.height })
   const [transparent, setTransparent] = useState(savedProject.transparent)
   const [artworkName, setArtworkName] = useState(savedProject.title)
@@ -211,6 +219,8 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [mobileToolbarOpen, setMobileToolbarOpen] = useState(true)
   const [mobileLayersOpen, setMobileLayersOpen] = useState(false)
+  const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false)
+  const [newProjectSaving, setNewProjectSaving] = useState(false)
   const [titleDraft, setTitleDraft] = useState(savedProject.title)
   const [hasPendingPaste, setHasPendingPaste] = useState(false)
   const [saveStatus, setSaveStatus] = useState('ready')
@@ -319,14 +329,14 @@ export default function App() {
   const handleSaveProject = async () => {
     const project = canvasRef.current?.getProject()
     const artwork = canvasRef.current?.getDataUrl()
-    if (!project || !artwork) return
+    if (!project || !artwork) return false
     setSaveStatus('saving')
     const saveToken = ++projectSaveTokenRef.current
     const id = currentProjectIdRef.current || createProjectId()
     const savedAt = Date.now()
     const preview = await createPreview(artwork)
     const record = { id, title: artworkNameRef.current, savedAt, preview, project }
-    if (!persistProjectRecord(record)) return
+    if (!persistProjectRecord(record)) return false
     let draftSaved = true
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, project, title: record.title, projectId: id, savedAt }))
@@ -340,6 +350,7 @@ export default function App() {
       setLastSavedAt(new Date(savedAt))
       setSaveStatus(draftSaved ? 'saved' : 'error')
     }
+    return true
   }
 
   const persistCurrentDraft = () => {
@@ -426,10 +437,11 @@ export default function App() {
     navigateToPage('editor')
   }
 
-  const handleNewProject = () => {
+  const handleNewProject = ({ saveDraft = true } = {}) => {
+    setNewProjectDialogOpen(false)
     projectSaveTokenRef.current += 1
     pageRef.current = 'editor'
-    persistCurrentDraft()
+    if (saveDraft) persistCurrentDraft()
     setCurrentProjectId(null)
     currentProjectIdRef.current = null
     setCanvasSource({ artwork: null, project: null })
@@ -449,6 +461,32 @@ export default function App() {
     skipSaveRevisionRef.current = null
     setCanvasMountKey((key) => key + 1)
     navigateToPage('editor')
+  }
+
+  const requestNewProject = () => {
+    setMobileMenuOpen(false)
+    if (pageRef.current === 'editor') {
+      setNewProjectDialogOpen(true)
+      return
+    }
+    handleNewProject()
+  }
+
+  const confirmNewProject = async (saveCurrent) => {
+    if (saveCurrent) {
+      setNewProjectSaving(true)
+      const saved = await handleSaveProject()
+      setNewProjectSaving(false)
+      if (!saved) return
+    }
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem(TITLE_STORAGE_KEY)
+    } catch {
+      setSaveStatus('error')
+    }
+    setNewProjectDialogOpen(false)
+    handleNewProject({ saveDraft: false })
   }
 
   const confirmDeleteProject = () => {
@@ -637,10 +675,11 @@ export default function App() {
       const modifier = event.ctrlKey || event.metaKey
       const editingText = target instanceof HTMLElement && (target.isContentEditable || target.tagName === 'TEXTAREA' || (target instanceof HTMLInputElement && ['text', 'search', 'url', 'tel', 'email', 'password'].includes(target.type)))
       if (editingText) return
-      if (clearDialogOpen || projectToDelete) {
+      if (clearDialogOpen || projectToDelete || newProjectDialogOpen) {
         if (event.key === 'Escape') {
           setClearDialogOpen(false)
           setProjectToDelete(null)
+          if (!newProjectSaving) setNewProjectDialogOpen(false)
         }
         return
       }
@@ -681,7 +720,7 @@ export default function App() {
         setTool(shapeTools[nextIndex])
         return
       }
-      const shortcutTools = { b: 'brush', e: 'eraser', g: 'fill', i: 'picker' }
+      const shortcutTools = { m: 'selection', b: 'brush', e: 'eraser', g: 'fill', i: 'picker', t: 'text' }
       if (shortcutTools[shortcut]) {
         event.preventDefault()
         setTool(shortcutTools[shortcut])
@@ -690,7 +729,7 @@ export default function App() {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [clearDialogOpen, hasPendingPaste, mobileMenuOpen, mobileToolbarOpen, projectToDelete, tool])
+  }, [clearDialogOpen, hasPendingPaste, mobileMenuOpen, mobileToolbarOpen, newProjectDialogOpen, projectToDelete, tool])
 
   const handleClear = () => {
     skipSaveRevisionRef.current = saveRevisionRef.current + 1
@@ -762,7 +801,9 @@ export default function App() {
             <span className="h-5 w-px shrink-0 bg-[var(--app-border)]" aria-hidden="true" />
           <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className={`theme-text truncate text-sm font-semibold tracking-tight ${page === 'home' ? 'max-[380px]:hidden' : ''}`}>{page === 'projects' ? 'Projects' : 'Canvas'}</h1>
+                <h1 className={`theme-text truncate text-sm font-semibold tracking-tight ${page === 'home' ? 'max-[380px]:hidden' : ''}`}>
+                  {page === 'projects' ? 'Projects' : <button type="button" onClick={handleGoHome} className="theme-text" aria-label="Open Canvas home page">Canvas</button>}
+                </h1>
               </div>
               {page === 'editor' && <div className={`mt-0.5 flex items-center gap-1.5 text-[10px] ${status.tone}`} aria-live="polite">
                 <StatusIcon size={12} className={saveStatus === 'saving' ? 'animate-spin' : ''} />
@@ -774,7 +815,7 @@ export default function App() {
           <div className="relative flex shrink-0 items-center gap-1.5 sm:gap-2">
             <div className="hidden items-center gap-1.5 md:flex">
               {page === 'editor' && <>
-                <button type="button" onClick={handleGoHome} className="header-secondary-button" aria-label="Go to home"><House size={15} /><span>Home</span></button>
+                <button type="button" onClick={requestNewProject} className="header-secondary-button" aria-label="Start a new project"><Plus size={15} /><span>New project</span></button>
                 <button type="button" onClick={handleSaveProject} disabled={!canvasReady} className="header-secondary-button disabled:cursor-not-allowed disabled:opacity-50" aria-label="Save project"><Save size={15} /><span>Save project</span></button>
                 <button type="button" onClick={handleShowProjects} className="header-secondary-button" aria-label="Open projects"><FolderOpen size={15} /><span>Projects</span></button>
               </>}
@@ -785,7 +826,6 @@ export default function App() {
                 <button type="button" onClick={() => setClearDialogOpen(true)} disabled={!canvasReady} className="header-secondary-button disabled:cursor-not-allowed disabled:opacity-50" aria-label="Clear canvas"><Trash2 size={16} /><span>Clear</span></button>
                 <button type="button" onClick={handleExport} className="site-cta flex h-10 items-center gap-2 px-3 text-sm font-semibold transition focus-visible:outline-none sm:px-4"><Download size={16} /><span>Export PNG</span></button>
               </> : page === 'projects' ? <>
-                <button type="button" onClick={handleGoHome} className="header-secondary-button"><House size={15} /><span>Home</span></button>
                 <button type="button" onClick={handleBackToEditor} className="header-secondary-button">Back to editor</button>
               </> : null}
             </div>
@@ -799,11 +839,11 @@ export default function App() {
             </div> : <div className="flex items-center gap-1 md:hidden">
               <button type="button" onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`} className="header-icon-button">{theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}</button>
               {page === 'projects'
-                ? <><button type="button" onClick={handleGoHome} className="header-icon-button" aria-label="Home"><House size={16} /></button><button type="button" onClick={handleBackToEditor} className="header-secondary-button">Editor</button></>
+                ? <button type="button" onClick={handleBackToEditor} className="header-secondary-button">Editor</button>
                 : null}
             </div>}
             {mobileMenuOpen && page === 'editor' && <div className="mobile-header-menu md:hidden" aria-label="Canvas actions">
-              <button type="button" onClick={handleGoHome}><House size={15} />Home</button>
+              <button type="button" onClick={requestNewProject}><Plus size={15} />New project</button>
               <button type="button" onClick={() => { setMobileMenuOpen(false); void handleSaveProject() }} disabled={!canvasReady}><Save size={15} />Save project</button>
               <button type="button" onClick={handleShowProjects}><FolderOpen size={15} />Projects</button>
               <button type="button" onClick={() => { setTheme((current) => current === 'light' ? 'dark' : 'light'); setMobileMenuOpen(false) }}>{theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}{theme === 'light' ? 'Dark theme' : 'Light theme'}</button>
@@ -821,6 +861,22 @@ export default function App() {
             onColorChange={setColor}
             brushSize={brushSize}
             onBrushSizeChange={setBrushSize}
+            fillMode={fillMode}
+            onFillModeChange={setFillMode}
+            gradientColor={gradientColor}
+            onGradientColorChange={setGradientColor}
+            gradientDirection={gradientDirection}
+            onGradientDirectionChange={setGradientDirection}
+            textSize={textSize}
+            onTextSizeChange={setTextSize}
+            textFont={textFont}
+            onTextFontChange={setTextFont}
+            textBold={textBold}
+            onTextBoldChange={setTextBold}
+            textItalic={textItalic}
+            onTextItalicChange={setTextItalic}
+            textAlign={textAlign}
+            onTextAlignChange={setTextAlign}
             canUndo={canUndo}
             canRedo={canRedo}
             onUndo={() => canvasRef.current?.undo()}
@@ -849,6 +905,22 @@ export default function App() {
             onColorChange={setColor}
             brushSize={brushSize}
             onBrushSizeChange={setBrushSize}
+            fillMode={fillMode}
+            onFillModeChange={setFillMode}
+            gradientColor={gradientColor}
+            onGradientColorChange={setGradientColor}
+            gradientDirection={gradientDirection}
+            onGradientDirectionChange={setGradientDirection}
+            textSize={textSize}
+            onTextSizeChange={setTextSize}
+            textFont={textFont}
+            onTextFontChange={setTextFont}
+            textBold={textBold}
+            onTextBoldChange={setTextBold}
+            textItalic={textItalic}
+            onTextItalicChange={setTextItalic}
+            textAlign={textAlign}
+            onTextAlignChange={setTextAlign}
             canUndo={canUndo}
             canRedo={canRedo}
             onUndo={() => canvasRef.current?.undo()}
@@ -909,6 +981,14 @@ export default function App() {
                   tool={tool}
                   color={color}
                   brushSize={brushSize}
+                  fillMode={fillMode}
+                  gradientColor={gradientColor}
+                  gradientDirection={gradientDirection}
+                  textSize={textSize}
+                  textFont={textFont}
+                  textBold={textBold}
+                  textItalic={textItalic}
+                  textAlign={textAlign}
                   width={canvasSize.width}
                   height={canvasSize.height}
                   transparent={transparent}
@@ -939,6 +1019,22 @@ export default function App() {
         </>}
       </div>
 
+      {newProjectDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-[2px]" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !newProjectSaving) setNewProjectDialogOpen(false) }}>
+          <section role="alertdialog" aria-modal="true" aria-labelledby="new-project-title" aria-describedby="new-project-description" className="theme-panel w-full max-w-sm border p-5 shadow-2xl shadow-black/30">
+            <h2 id="new-project-title" className="theme-text text-base font-semibold">Save this project first?</h2>
+            <p id="new-project-description" className="theme-muted mt-2 text-sm leading-relaxed">Save the current canvas to Projects before starting a new one, or discard the current draft.</p>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button type="button" onClick={() => setNewProjectDialogOpen(false)} disabled={newProjectSaving} className="theme-muted h-9 px-3 text-xs font-semibold transition hover:bg-[var(--panel-subtle)] disabled:opacity-50">Cancel</button>
+              <button type="button" onClick={() => void confirmNewProject(false)} disabled={newProjectSaving} className="theme-muted h-9 px-3 text-xs font-semibold transition hover:bg-[var(--panel-subtle)] disabled:opacity-50">Start without saving</button>
+              <button type="button" autoFocus onClick={() => void confirmNewProject(true)} disabled={!canvasReady || newProjectSaving} className="site-cta flex h-9 items-center gap-2 px-3 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50">
+                {newProjectSaving ? <LoaderCircle size={14} className="animate-spin" /> : <Save size={14} />}
+                {newProjectSaving ? 'Saving…' : 'Save & new'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
       {clearDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setClearDialogOpen(false) }}>
           <section role="alertdialog" aria-modal="true" aria-labelledby="clear-title" aria-describedby="clear-description" className="theme-panel w-full max-w-sm rounded-2xl border p-6 shadow-2xl shadow-slate-950/20">

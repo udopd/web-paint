@@ -43,7 +43,7 @@ export function drawShape(ctx, tool, start, end, color, size) {
   ctx.restore()
 }
 
-export function floodFill(ctx, x, y, hexColor, tolerance = 18) {
+export function floodFill(ctx, x, y, hexColor, tolerance = 18, gradient = null) {
   const { canvas } = ctx
   const startX = Math.floor(x)
   const startY = Math.floor(y)
@@ -59,72 +59,70 @@ export function floodFill(ctx, x, y, hexColor, tolerance = 18) {
   const replacement = hexToRgb(hexColor)
   const replacementColor = [replacement.r, replacement.g, replacement.b, 255]
 
-  if (target.every((channel, index) => channel === replacementColor[index])) return false
+  if (!gradient && target.every((channel, index) => channel === replacementColor[index])) return false
 
   const matches = (pixel) => (
-    !(data[pixel] === replacementColor[0]
-      && data[pixel + 1] === replacementColor[1]
-      && data[pixel + 2] === replacementColor[2]
-      && data[pixel + 3] === replacementColor[3])
-    &&
     Math.abs(data[pixel] - target[0]) <= tolerance
     && Math.abs(data[pixel + 1] - target[1]) <= tolerance
     && Math.abs(data[pixel + 2] - target[2]) <= tolerance
     && Math.abs(data[pixel + 3] - target[3]) <= tolerance
   )
 
-  const stack = new Int32Array(width * height)
+  const totalPixels = width * height
+  const stack = new Int32Array(totalPixels)
+  const visited = new Uint8Array(totalPixels)
   let stackLength = 0
-  stack[stackLength++] = startY * width + startX
+  let minX = startX
+  let maxX = startX
+  let minY = startY
+  let maxY = startY
+  const startIndex = startY * width + startX
+  stack[stackLength++] = startIndex
+  visited[startIndex] = 1
+  const enqueueIfMatching = (index) => {
+    if (index < 0 || visited[index] || !matches(index * 4)) return
+    visited[index] = 1
+    stack[stackLength++] = index
+  }
 
   while (stackLength > 0) {
-    const seed = stack[--stackLength]
-    const seedX = seed % width
-    const row = Math.floor(seed / width)
-    let left = seedX
-    let pixel = (row * width + left) * 4
+    const index = stack[--stackLength]
+    const pixelX = index % width
+    const pixelY = Math.floor(index / width)
+    minX = Math.min(minX, pixelX)
+    maxX = Math.max(maxX, pixelX)
+    minY = Math.min(minY, pixelY)
+    maxY = Math.max(maxY, pixelY)
 
-    while (left > 0 && matches(pixel - 4)) {
-      left -= 1
-      pixel -= 4
-    }
+    if (pixelX > 0) enqueueIfMatching(index - 1)
+    if (pixelX + 1 < width) enqueueIfMatching(index + 1)
+    if (pixelY > 0) enqueueIfMatching(index - width)
+    if (pixelY + 1 < height) enqueueIfMatching(index + width)
+  }
 
-    let spanAbove = false
-    let spanBelow = false
-
-    for (let currentX = left; currentX < width; currentX += 1) {
-      pixel = (row * width + currentX) * 4
-      if (!matches(pixel)) break
-
+  const gradientEnd = gradient ? hexToRgb(gradient.color) : null
+  const spanX = Math.max(1, maxX - minX)
+  const spanY = Math.max(1, maxY - minY)
+  // Re-scan the visited mask so gradient colors use the bounds of the whole connected area.
+  for (let index = 0; index < totalPixels; index += 1) {
+    if (!visited[index]) continue
+    const pixel = index * 4
+    if (!gradient) {
       data[pixel] = replacementColor[0]
       data[pixel + 1] = replacementColor[1]
       data[pixel + 2] = replacementColor[2]
       data[pixel + 3] = replacementColor[3]
-
-      if (row > 0) {
-        const above = pixel - width * 4
-        if (matches(above)) {
-          if (!spanAbove && stackLength < stack.length) {
-            stack[stackLength++] = (row - 1) * width + currentX
-          }
-          spanAbove = true
-        } else {
-          spanAbove = false
-        }
-      }
-
-      if (row < height - 1) {
-        const below = pixel + width * 4
-        if (matches(below)) {
-          if (!spanBelow && stackLength < stack.length) {
-            stack[stackLength++] = (row + 1) * width + currentX
-          }
-          spanBelow = true
-        } else {
-          spanBelow = false
-        }
-      }
+      continue
     }
+    const pixelX = index % width
+    const pixelY = Math.floor(index / width)
+    const horizontal = (pixelX - minX) / spanX
+    const vertical = (pixelY - minY) / spanY
+    const amount = gradient.direction === 'vertical' ? vertical : gradient.direction === 'diagonal' ? (horizontal + vertical) / 2 : horizontal
+    data[pixel] = Math.round(replacement.r + (gradientEnd.r - replacement.r) * amount)
+    data[pixel + 1] = Math.round(replacement.g + (gradientEnd.g - replacement.g) * amount)
+    data[pixel + 2] = Math.round(replacement.b + (gradientEnd.b - replacement.b) * amount)
+    data[pixel + 3] = 255
   }
 
   ctx.putImageData(image, 0, 0)

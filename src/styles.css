@@ -163,6 +163,132 @@ button:disabled {
   transition: background-color 120ms ease, color 120ms ease;
 }
 
+.shape-tool-select-wrap {
+  position: relative;
+  display: inline-flex;
+  height: 36px;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: var(--app-muted);
+}
+
+.shape-tool-select-wrap:hover,
+.shape-tool-select-active {
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+.shape-tool-select {
+  height: 100%;
+  appearance: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 24px 0 8px;
+  font-size: 11px;
+  outline: none;
+}
+
+.shape-tool-select-wrap > svg {
+  position: absolute;
+  right: 6px;
+  pointer-events: none;
+}
+
+.shape-tool-select option {
+  background: var(--panel-bg);
+  color: var(--app-text);
+}
+
+.tool-settings-group {
+  border-right: 1px solid var(--app-border);
+  padding-right: 10px;
+}
+
+.tool-setting-select,
+.tool-text-size {
+  height: 28px;
+  border: 1px solid var(--app-border);
+  border-radius: 2px;
+  background: var(--panel-bg);
+  color: var(--app-text);
+  padding: 0 6px;
+  font-size: 11px;
+  outline: none;
+}
+
+.tool-setting-select:focus-visible,
+.tool-text-size:focus-visible,
+.tool-format-button:focus-visible {
+  outline: 2px solid var(--app-muted);
+  outline-offset: 1px;
+}
+
+.tool-gradient-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tool-gradient-color input {
+  width: 25px;
+  height: 25px;
+  border: 1px solid var(--app-border);
+  background: transparent;
+  padding: 2px;
+}
+
+.tool-text-size {
+  width: 54px;
+}
+
+.tool-format-button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--app-border);
+  color: var(--app-muted);
+}
+
+.tool-format-button-active {
+  background: var(--panel-subtle);
+  color: var(--app-text);
+}
+
+.canvas-text-editor {
+  border-color: var(--app-border);
+  background: var(--panel-bg);
+  color: var(--app-text);
+}
+
+.canvas-text-editor-input {
+  min-height: 48px;
+  color: var(--app-text);
+  line-height: 1.25;
+}
+
+.canvas-text-editor-input::placeholder {
+  color: var(--app-muted);
+  font-size: 12px;
+}
+
+.canvas-text-editor > .border-t {
+  border-color: var(--app-border);
+}
+
+.canvas-text-editor-button {
+  padding: 4px 7px;
+  color: var(--app-muted);
+  font-size: 10px;
+}
+
+.canvas-text-editor-add {
+  background: var(--accent);
+  color: var(--accent-inverse);
+}
+
 .mobile-menu-trigger,
 .mobile-toolbar-trigger {
   border: 1px solid var(--app-border);
